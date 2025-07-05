@@ -13,7 +13,7 @@ DOMAIN = "https://infiniteautowerks.com/"
 PK = "pk_live_51MwcfkEreweRX4nmQHMS2A6b1LooXYEf671WoSSZTusv9jAbcwEwE5cOXsOAtdCwi44NGBrcmnzSy7LprdcAs2Fp00QKpqinae"
 GATEWAY_NAME = "Stripe Auth"
 
-MAX_WORKERS = 100
+MAX_WORKERS = 200
 checked_ccs = set()
 proxy_list = []
 
