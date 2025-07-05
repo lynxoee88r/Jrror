@@ -163,7 +163,7 @@ async def main():
         all_ccs = set()
         is_txt = False
 
-        if event.file and event.file.name.endswith(".txt"):
+        if event.document and event.document.mime_type == "text/plain":
             try:
                 path = await event.download_media()
                 with open(path, 'r', encoding='utf-8', errors='ignore') as f:
