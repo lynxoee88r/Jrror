@@ -1,3 +1,5 @@
-telethon==1.35.0
-aiohttp==3.9.3
-flask
+aiohttp>=3.8.1
+telethon>=1.24.0
+flask>=2.2.0
+pyfiglet>=0.8.post1
+colorama>=0.4.6
