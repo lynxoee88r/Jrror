@@ -1,6 +1,8 @@
 import asyncio, aiohttp, re, os
 from aiohttp import ClientSession, TCPConnector
 from telethon import TelegramClient, events
+from flask import Flask
+from threading import Thread
 
 API_ID = 28909605
 API_HASH = '79620d3ae963bc568b92375dff884c13'
@@ -14,6 +16,19 @@ GATEWAY_NAME = "Stripe Auth"
 MAX_WORKERS = 100
 checked_ccs = set()
 proxy_list = []
+
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def home():
+    return "Checker Bot is Running"
+
+@flask_app.route('/healthz')
+def health():
+    return "OK"
+
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=10000)
 
 async def load_proxies():
     global proxy_list
@@ -49,11 +64,9 @@ async def bin_lookup(bin_num, session):
         pass
     return "BIN Info Not Found"
 
-# === CHECKER 1: Handles .txt file CCs only ===
 async def checker_txt(client, cc_data):
     await ppc(client, cc_data, post_result=False)
 
-# === CHECKER 2: Handles normal message CCs ===
 async def checker_msg(client, cc_data):
     await ppc(client, cc_data, post_result=True)
 
@@ -193,4 +206,5 @@ async def main():
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
+    Thread(target=run_flask).start()
     asyncio.run(main())
