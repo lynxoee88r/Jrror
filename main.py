@@ -4,7 +4,7 @@ from telethon import TelegramClient, events
 
 API_ID = 28909605
 API_HASH = '79620d3ae963bc568b92375dff884c13'
-SESSION_NAME = 'sendmeccs'
+SESSION_NAME = 'ccsession'
 CHANNEL_USERNAME = 'sendmeccs'
 
 DOMAIN = "https://infiniteautowerks.com/"
@@ -161,5 +161,20 @@ async def main():
 
     await client.run_until_disconnected()
 
+# === Flask Uptime Server ===
+from flask import Flask
+from threading import Thread
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Main.py is running"
+
+def run_flask():
+    app.run(host='0.0.0.0', port=8080)
+
+# === Main Start ===
 if __name__ == "__main__":
-    asyncio.run(main())
+    Thread(target=run_flask).start()  # Start Flask for UptimeRobot
+    asyncio.run(main())               # Start your async main loop
