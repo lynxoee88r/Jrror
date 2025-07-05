@@ -60,7 +60,8 @@ async def checker_msg(client, cc_data):
 async def ppc(client, cc_data, post_result=True):
     try:
         cc, mon, year, cvv = cc_data.split("|")
-        year = year[-2:]
+        if len(year) == 2:
+            year = "20" + year
         normalized_cc = f"{cc}|{mon}|{year}|{cvv}"
         if normalized_cc in checked_ccs:
             return
@@ -85,7 +86,7 @@ async def ppc(client, cc_data, post_result=True):
             return
 
         data2 = {
-            "type": "card", "card[number]": cc, "card[cvc]": cvv, "card[exp_year]": year,
+            "type": "card", "card[number]": cc, "card[cvc]": cvv, "card[exp_year]": year[-2:],
             "card[exp_month]": mon, "billing_details[address][postal_code]": "99501",
             "billing_details[address][country]": "US", "key": PK, "_stripe_version": "2024-06-20",
         }
