@@ -4,7 +4,7 @@ from telethon import TelegramClient, events
 
 API_ID = 28909605
 API_HASH = '79620d3ae963bc568b92375dff884c13'
-SESSION_NAME = 'ccsession'
+SESSION_NAME = 'sendmeccs'
 CHANNEL_USERNAME = 'sendmeccs'
 
 DOMAIN = "https://infiniteautowerks.com/"
